@@ -2,11 +2,19 @@
 
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8">
+        <Link href="/">
+          <Button variant="ghost" className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Sign in to your account
