@@ -232,7 +232,7 @@ const ApiKeyManagement = () => {
           The key is used to authenticate your requests to the Research API. To learn more, see the documentation page.
         </p>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-w-[calc(100vw-48px)]">
           <table className="w-full">
             <thead>
               <tr className="border-b">

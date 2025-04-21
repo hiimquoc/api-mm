@@ -14,8 +14,10 @@ import {
   FileText,
   ChevronDown,
   LogOut,
+  Menu,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 interface NavItem {
   label: string
@@ -55,7 +57,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname()
   const selectedAccount = 'Personal'
 
@@ -74,7 +76,7 @@ export function Sidebar() {
   }
 
   return (
-    <div className="flex flex-col h-screen border-r p-4 space-y-8">
+    <div className="flex flex-col h-full p-4 space-y-8">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
         <div className="relative w-8 h-8">
@@ -148,5 +150,44 @@ export function Sidebar() {
         </div>
       </div>
     </div>
+  )
+}
+
+export function Sidebar() {
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col h-screen border-r">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Menu */}
+      <div className="md:hidden fixed top-0 left-0 right-0 p-4 flex items-center justify-between bg-white border-b z-50">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="relative w-8 h-8">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-4 h-4 bg-blue-500 transform rotate-45" />
+              <div className="absolute w-4 h-4 bg-red-500 transform -rotate-45" />
+              <div className="absolute w-4 h-1 bg-yellow-500 ml-4" />
+            </div>
+          </div>
+          <span className="text-xl font-semibold">tavily</span>
+        </Link>
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Mobile Content Padding */}
+      <div className="h-[72px] md:hidden" />
+    </>
   )
 } 
