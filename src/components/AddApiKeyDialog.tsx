@@ -14,10 +14,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus } from "lucide-react"
-import { nanoid } from "nanoid"
 
 interface AddApiKeyDialogProps {
-  onAddKey: (key: { name: string; type: string; key: string; user_id: string; usage: number }) => void;
+  onAddKey: (newKey: { name: string; type: string; key: string; user_id: string; usage: number }) => void;
   userId: string;
 }
 
@@ -31,14 +30,14 @@ export function AddApiKeyDialog({ onAddKey, userId }: AddApiKeyDialogProps) {
     const newKey = {
       name,
       type,
-      key: `tvly-${nanoid(32)}`,
+      key: `tvly-${type}-${Math.random().toString(36).substring(2)}`,
       user_id: userId,
       usage: 0
     }
     onAddKey(newKey)
+    setOpen(false)
     setName("")
     setType("dev")
-    setOpen(false)
   }
 
   return (
@@ -46,7 +45,7 @@ export function AddApiKeyDialog({ onAddKey, userId }: AddApiKeyDialogProps) {
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Add
+          Add API Key
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -54,7 +53,7 @@ export function AddApiKeyDialog({ onAddKey, userId }: AddApiKeyDialogProps) {
           <DialogHeader>
             <DialogTitle>Add API Key</DialogTitle>
             <DialogDescription>
-              Create a new API key for your application. You can change the name and type later.
+              Create a new API key to authenticate your requests.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
