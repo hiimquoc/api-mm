@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     // Validate API key and check usage
     const { data: apiKeyData, error: apiKeyError } = await supabase
       .from('api_keys')
-      .select('id, usage, max_usage')
+      .select('id, usage, user_id')
       .eq('key', apiKey)
       .single()
 
@@ -73,8 +73,22 @@ export async function POST(request: Request) {
       )
     }
 
+    // Get user's max_usage
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('max_usage')
+      .eq('id', apiKeyData.user_id)
+      .single()
+
+    if (userError || !userData) {
+      return NextResponse.json(
+        { error: 'Failed to get user data' },
+        { status: 500 }
+      )
+    }
+
     // Check if usage limit is reached
-    if (apiKeyData.usage >= apiKeyData.max_usage) {
+    if (apiKeyData.usage >= userData.max_usage) {
       return NextResponse.json(
         { error: 'API key usage limit exceeded' },
         { status: 403 }

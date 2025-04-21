@@ -1,3 +1,9 @@
+-- Add max_usage to users table
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS max_usage INTEGER DEFAULT 1000;
+
+-- Remove max_usage from api_keys table
+ALTER TABLE api_keys DROP COLUMN IF EXISTS max_usage;
+
 -- Create api_keys table
 CREATE TABLE IF NOT EXISTS api_keys (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -6,10 +12,8 @@ CREATE TABLE IF NOT EXISTS api_keys (
   type TEXT NOT NULL,
   key TEXT NOT NULL,
   usage INTEGER DEFAULT 0,
-  max_usage INTEGER DEFAULT 1000,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  CONSTRAINT usage_within_limit CHECK (usage <= max_usage)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Create index for faster lookups
@@ -57,18 +61,20 @@ CREATE TRIGGER update_api_keys_updated_at
 -- Create function to validate API key usage
 CREATE OR REPLACE FUNCTION validate_api_key_usage()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_max_usage INTEGER;
 BEGIN
+  -- Get user's max_usage
+  SELECT max_usage INTO user_max_usage
+  FROM public.users
+  WHERE id = NEW.user_id;
+
   -- Check if this is a usage increment
   IF NEW.usage > OLD.usage THEN
-    -- Check if incrementing usage would exceed max_usage
-    IF NEW.usage > NEW.max_usage THEN
-      RAISE EXCEPTION 'API key usage limit exceeded. Maximum allowed: %', NEW.max_usage;
+    -- Check if incrementing usage would exceed user's max_usage
+    IF NEW.usage > user_max_usage THEN
+      RAISE EXCEPTION 'API key usage limit exceeded. Maximum allowed: %', user_max_usage;
     END IF;
-  END IF;
-
-  -- Check if max_usage is being decreased below current usage
-  IF NEW.max_usage < OLD.max_usage AND NEW.max_usage < NEW.usage THEN
-    RAISE EXCEPTION 'Cannot decrease max_usage below current usage';
   END IF;
 
   RETURN NEW;
