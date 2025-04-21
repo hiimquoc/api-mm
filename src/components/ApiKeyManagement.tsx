@@ -1,10 +1,13 @@
 "use client"
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, Copy, Pencil, Trash, Plus, LogOut } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { Copy, Pencil, Trash, Plus, LogOut } from 'lucide-react';
+import { signOut, useSession } from 'next-auth/react';
+import { supabase } from '@/lib/supabase';
+import { nanoid } from 'nanoid';
 
 interface ApiKey {
+  id: string;
   name: string;
   type: string;
   usage: number;
@@ -12,26 +15,126 @@ interface ApiKey {
 }
 
 const ApiKeyManagement = () => {
-  const [apiKeys, setApiKeys] = React.useState<ApiKey[]>([
-    {
-      name: 'default',
-      type: 'dev',
-      usage: 0,
-      key: 'tvly-dev-********************************',
-    },
-  ]);
+  const { data: session } = useSession();
+  const [apiKeys, setApiKeys] = React.useState<ApiKey[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  console.log("session", session)
+
+  // Fetch API keys
+  const fetchApiKeys = async () => {
+    if (!session?.user?.supabaseUserId) {
+      console.log('No Supabase user ID found in session');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('user_id', session.user.supabaseUserId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching API keys:', error);
+        throw error;
+      }
+
+      console.log('Fetched API keys:', data);
+      setApiKeys(data || []);
+    } catch (error) {
+      console.error('Error in fetchApiKeys:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load API keys on mount and when session changes
+  React.useEffect(() => {
+    if (session?.user?.supabaseUserId) {
+      fetchApiKeys();
+    }
+  }, [session?.user?.supabaseUserId]);
 
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
   };
 
-  const handleAddKey = () => {
-    // Implementation for adding new key
+  const handleAddKey = async () => {
+    if (!session?.user?.supabaseUserId) {
+      console.log('No Supabase user ID found in session');
+      return;
+    }
+
+    const newKey = {
+      name: 'New Key',
+      type: 'dev',
+      key: `tvly-${nanoid(32)}`,
+      user_id: session.user.supabaseUserId,
+      usage: 0
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .insert([newKey])
+        .select();
+
+      if (error) {
+        console.error('Error adding API key:', error);
+        throw error;
+      }
+
+      if (data) {
+        setApiKeys([...data, ...apiKeys]);
+      }
+    } catch (error) {
+      console.error('Error in handleAddKey:', error);
+    }
   };
 
-  const handleDeleteKey = (name: string) => {
-    setApiKeys(apiKeys.filter(key => key.name !== name));
+  const handleDeleteKey = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('api_keys')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setApiKeys(apiKeys.filter(key => key.id !== id));
+    } catch (error) {
+      console.error('Error deleting API key:', error);
+    }
   };
+
+  const handleUpdateKey = async (id: string, updates: Partial<ApiKey>) => {
+    try {
+      const { error } = await supabase
+        .from('api_keys')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchApiKeys(); // Refresh the list
+    } catch (error) {
+      console.error('Error updating API key:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-6"></div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6">
@@ -74,7 +177,7 @@ const ApiKeyManagement = () => {
           </thead>
           <tbody>
             {apiKeys.map((apiKey) => (
-              <tr key={apiKey.name} className="border-b">
+              <tr key={apiKey.id} className="border-b">
                 <td className="py-4 px-4">{apiKey.name}</td>
                 <td className="py-4 px-4">{apiKey.type}</td>
                 <td className="py-4 px-4">{apiKey.usage}</td>
@@ -84,10 +187,10 @@ const ApiKeyManagement = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {}}
-                      aria-label="View API key"
+                      onClick={() => handleUpdateKey(apiKey.id, { name: prompt('Enter new name:', apiKey.name) || apiKey.name })}
+                      aria-label="Edit API key"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -100,15 +203,7 @@ const ApiKeyManagement = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {}}
-                      aria-label="Edit API key"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteKey(apiKey.name)}
+                      onClick={() => handleDeleteKey(apiKey.id)}
                       aria-label="Delete API key"
                       className="text-red-500 hover:text-red-600"
                     >

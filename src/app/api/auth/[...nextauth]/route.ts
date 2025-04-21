@@ -38,20 +38,32 @@ const handler = NextAuth({
 
           if (!existingUser) {
             // Create new user if doesn't exist
-            const { error } = await adminSupabase.from('users').insert([
-              {
-                email: user.email,
-                name: user.name,
-                avatar_url: user.image,
-                provider: 'google',
-                provider_id: user.id,
-              },
-            ]);
+            const { data: newUser, error } = await adminSupabase
+              .from('users')
+              .insert([
+                {
+                  email: user.email,
+                  name: user.name,
+                  avatar_url: user.image,
+                  provider: 'google',
+                  provider_id: user.id,
+                },
+              ])
+              .select()
+              .single();
 
             if (error) {
               console.error('Error creating user:', error);
               return false;
             }
+
+            // Store both NextAuth and Supabase user IDs
+            user.id = newUser.id;
+            user.supabaseUserId = newUser.id;
+          } else {
+            // Store both NextAuth and Supabase user IDs
+            user.id = existingUser.id;
+            user.supabaseUserId = existingUser.id;
           }
           return true;
         } catch (error) {
@@ -60,6 +72,20 @@ const handler = NextAuth({
         }
       }
       return true;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.supabaseUserId = user.supabaseUserId;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.supabaseUserId = token.supabaseUserId as string;
+      }
+      return session;
     },
   },
 });
