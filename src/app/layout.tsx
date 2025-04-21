@@ -22,7 +22,7 @@ export default function RootLayout({
       <body className={cn(inter.className, "h-full")}>
         <Providers>
           <div className="flex min-h-full bg-background">
-            <Sidebar />
+            {/* <Sidebar /> */}
             <main className="flex-1 h-screen overflow-y-auto">
               {children}
             </main>
