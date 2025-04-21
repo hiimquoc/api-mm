@@ -1,11 +1,12 @@
 "use client"
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash, LogOut } from 'lucide-react';
+import { Copy, LogOut } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import { AddApiKeyDialog } from './AddApiKeyDialog';
 import { UpdateApiKeyDialog } from './UpdateApiKeyDialog';
+import { DeleteApiKeyDialog } from './DeleteApiKeyDialog';
 
 interface ApiKey {
   id: string;
@@ -183,15 +184,7 @@ const ApiKeyManagement = () => {
                       apiKey={apiKey}
                       onUpdateKey={handleUpdateKey}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteKey(apiKey.id)}
-                      aria-label="Delete API key"
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    <DeleteApiKeyDialog onConfirm={() => handleDeleteKey(apiKey.id)} />
                   </div>
                 </td>
               </tr>
