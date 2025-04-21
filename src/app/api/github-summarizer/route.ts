@@ -73,12 +73,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get user's max_usage
+    // Get user's max_usage and current usage
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('max_usage')
+      .select('max_usage, usage')
       .eq('id', apiKeyData.user_id)
       .single()
+    
+      console.log(userData, userError)
 
     if (userError || !userData) {
       return NextResponse.json(
@@ -87,10 +89,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if usage limit is reached
-    if (apiKeyData.usage >= userData.max_usage) {
+    // Check if user's usage limit is reached
+    if (userData.usage >= userData.max_usage) {
       return NextResponse.json(
-        { error: 'API key usage limit exceeded' },
+        { error: 'Usage limit exceeded' },
         { status: 403 }
       )
     }
@@ -157,16 +159,18 @@ export async function POST(request: Request) {
     // Validate the output against our schema
     const validatedResult = summarySchema.parse(result)
 
-    // Increment the usage counter
-    const { error: updateError } = await supabase
-      .from('api_keys')
-      .update({ usage: apiKeyData.usage + 1 })
-      .eq('id', apiKeyData.id)
+    // Increment both API key and user usage
+    const { error: updateError } = await supabase.rpc('increment_usage', {
+      api_key_id: apiKeyData.id,
+      user_id: apiKeyData.user_id
+    })
 
     if (updateError) {
-      console.error('Error updating API key usage:', updateError)
-      // We still return the result even if usage update fails
-      // but log the error for monitoring
+      console.error('Error updating usage:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to update usage' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json(validatedResult)

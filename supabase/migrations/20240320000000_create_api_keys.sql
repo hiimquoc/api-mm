@@ -1,5 +1,7 @@
--- Add max_usage to users table
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS max_usage INTEGER DEFAULT 1000;
+-- Add max_usage and usage to users table
+ALTER TABLE public.users 
+  ADD COLUMN IF NOT EXISTS max_usage INTEGER DEFAULT 1000,
+  ADD COLUMN IF NOT EXISTS usage INTEGER DEFAULT 0;
 
 -- Remove max_usage from api_keys table
 ALTER TABLE api_keys DROP COLUMN IF EXISTS max_usage;
@@ -58,14 +60,15 @@ CREATE TRIGGER update_api_keys_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Create function to validate API key usage
+-- Create function to validate API key usage and update user usage
 CREATE OR REPLACE FUNCTION validate_api_key_usage()
 RETURNS TRIGGER AS $$
 DECLARE
   user_max_usage INTEGER;
+  user_usage INTEGER;
 BEGIN
-  -- Get user's max_usage
-  SELECT max_usage INTO user_max_usage
+  -- Get user's max_usage and current usage
+  SELECT max_usage, usage INTO user_max_usage, user_usage
   FROM public.users
   WHERE id = NEW.user_id;
 
@@ -75,6 +78,11 @@ BEGIN
     IF NEW.usage > user_max_usage THEN
       RAISE EXCEPTION 'API key usage limit exceeded. Maximum allowed: %', user_max_usage;
     END IF;
+
+    -- Update user's usage
+    UPDATE public.users
+    SET usage = usage + (NEW.usage - OLD.usage)
+    WHERE id = NEW.user_id;
   END IF;
 
   RETURN NEW;
@@ -85,4 +93,20 @@ $$ language 'plpgsql';
 CREATE TRIGGER validate_api_key_usage_trigger
   BEFORE UPDATE ON api_keys
   FOR EACH ROW
-  EXECUTE FUNCTION validate_api_key_usage(); 
+  EXECUTE FUNCTION validate_api_key_usage();
+
+-- Create function to increment usage for both API key and user
+CREATE OR REPLACE FUNCTION increment_usage(api_key_id UUID, user_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Increment API key usage
+  UPDATE api_keys
+  SET usage = usage + 1
+  WHERE id = api_key_id;
+
+  -- Increment user usage
+  UPDATE public.users
+  SET usage = usage + 1
+  WHERE id = user_id;
+END;
+$$ language 'plpgsql' SECURITY DEFINER; 
