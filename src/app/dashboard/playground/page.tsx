@@ -1,151 +1,133 @@
 "use client"
 
-import React from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { supabase } from '@/lib/supabase'
-import { toast } from 'sonner'
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Loader2 } from 'lucide-react'
 
-interface VerificationStatus {
-  status: 'idle' | 'valid' | 'invalid'
-  details?: {
-    name: string
-    type: string
-  }
-}
+export default function Playground() {
+  const [url, setUrl] = useState('')
+  const [apiKey, setApiKey] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{
+    summary: string
+    coolFacts: string[]
+  } | null>(null)
 
-export default function PlaygroundPage() {
-  const [apiKey, setApiKey] = React.useState('')
-  const [isVerifying, setIsVerifying] = React.useState(false)
-  const [verificationStatus, setVerificationStatus] = React.useState<VerificationStatus>({ status: 'idle' })
-
-  const verifyApiKey = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsVerifying(true)
-    setVerificationStatus({ status: 'idle' })
+    setLoading(true)
+    setError(null)
+    setResult(null)
 
     try {
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('id, name, type')
-        .eq('key', apiKey)
-        .single()
-
-      if (error) {
-        throw error
-      }
-
-      if (data) {
-        setVerificationStatus({ 
-          status: 'valid',
-          details: {
-            name: data.name,
-            type: data.type
-          }
-        })
-        toast.success('API Key Verified', {
-          description: `This is a valid ${data.type} API key named "${data.name}".`,
-        })
-      }
-    } catch (error) {
-      console.error('Error verifying API key:', error)
-      setVerificationStatus({ status: 'invalid' })
-      toast.error('Invalid API Key', {
-        description: 'The provided API key is not valid.',
+      const response = await fetch('/api/github-summarizer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: JSON.stringify({ url }),
       })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch repository summary')
+      }
+
+      const data = await response.json()
+      setResult(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
-      setIsVerifying(false)
+      setLoading(false)
     }
   }
 
-  const statusDisplay = {
-    idle: {
-      icon: <AlertCircle className="h-5 w-5 text-gray-400" />,
-      title: 'Verification Status',
-      description: 'Enter an API key above to verify its validity.',
-      className: 'bg-gray-50 border-gray-200',
-    },
-    valid: {
-      icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-      title: 'Valid API Key',
-      description: verificationStatus.details 
-        ? `This is a valid ${verificationStatus.details.type} API key named "${verificationStatus.details.name}".`
-        : 'This API key is valid.',
-      className: 'bg-green-50 border-green-200',
-    },
-    invalid: {
-      icon: <XCircle className="h-5 w-5 text-red-500" />,
-      title: 'Invalid API Key',
-      description: 'The provided API key is not valid.',
-      className: 'bg-red-50 border-red-200',
-    },
-  }
-
-  const currentStatus = statusDisplay[verificationStatus.status]
-
   return (
-    <div className="w-full max-w-6xl mx-auto p-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Pages</h1>
-          <span className="text-gray-500">/</span>
-          <span className="text-gray-500">API Playground</span>
-        </div>
-      </div>
+    <div className="container mx-auto py-8">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>GitHub Repository Summarizer</CardTitle>
+          <CardDescription>
+            Enter a GitHub repository URL and your API key to get a summary and interesting facts about it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="url" className="text-sm font-medium">
+                  Repository URL
+                </label>
+                <Input
+                  id="url"
+                  type="url"
+                  placeholder="https://github.com/owner/repo"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
 
-      <h2 className="text-3xl font-bold">API Playground</h2>
-
-      <div className="rounded-xl border p-8 space-y-8">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Verify API Key</h3>
-          <p className="text-gray-600">
-            Enter your API key below to verify if it&apos;s valid and get information about it.
-          </p>
-        </div>
-
-        <form onSubmit={verifyApiKey} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="apiKey" className="text-sm font-medium">
-              API Key
-            </label>
-            <Input
-              id="apiKey"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key (e.g., tvly-dev-...)"
-              className="font-mono"
-              required
-            />
-          </div>
-
-          <Button type="submit" disabled={isVerifying}>
-            {isVerifying ? 'Verifying...' : 'Verify API Key'}
-          </Button>
-        </form>
-
-        <div className={`rounded-lg border p-4 ${currentStatus.className}`}>
-          <div className="flex items-start gap-3">
-            {currentStatus.icon}
-            <div>
-              <h4 className="font-medium">{currentStatus.title}</h4>
-              <p className="text-sm text-gray-600 mt-1">
-                {currentStatus.description}
-              </p>
+              <div className="space-y-2">
+                <label htmlFor="apiKey" className="text-sm font-medium">
+                  API Key
+                </label>
+                <Input
+                  id="apiKey"
+                  type="password"
+                  placeholder="Enter your API key"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  required
+                  className="w-full font-mono"
+                />
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="border-t pt-6">
-          <h4 className="font-medium mb-2">Example API Key Format</h4>
-          <code className="bg-gray-100 p-2 rounded text-sm font-mono block">
-            tvly-dev-abcdef123456
-          </code>
-          <p className="mt-2 text-sm text-gray-600">
-            API keys start with &quot;tvly-&quot; followed by the type (dev/prod) and a unique identifier.
-          </p>
-        </div>
-      </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Summarizing...
+                </>
+              ) : (
+                'Summarize Repository'
+              )}
+            </Button>
+          </form>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-md">
+              {error}
+            </div>
+          )}
+
+          {result && (
+            <div className="mt-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Summary</h3>
+                <p className="text-gray-600">{result.summary}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Cool Facts</h3>
+                <ul className="list-disc list-inside space-y-2">
+                  {result.coolFacts.map((fact, index) => (
+                    <li key={index} className="text-gray-600">
+                      {fact}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 } 
