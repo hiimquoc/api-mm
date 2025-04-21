@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { AddApiKeyDialog } from './AddApiKeyDialog';
 import { UpdateApiKeyDialog } from './UpdateApiKeyDialog';
 import { DeleteApiKeyDialog } from './DeleteApiKeyDialog';
+import { ApiKeyDisplay } from './ApiKeyDisplay';
 
 interface ApiKey {
   id: string;
@@ -169,7 +170,9 @@ const ApiKeyManagement = () => {
                 <td className="py-4 px-4">{apiKey.name}</td>
                 <td className="py-4 px-4">{apiKey.type}</td>
                 <td className="py-4 px-4">{apiKey.usage}</td>
-                <td className="py-4 px-4 font-mono">{apiKey.key}</td>
+                <td className="py-4 px-4">
+                  <ApiKeyDisplay apiKey={apiKey.key} />
+                </td>
                 <td className="py-4 px-4">
                   <div className="flex justify-end gap-2">
                     <Button
