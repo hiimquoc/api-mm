@@ -28,7 +28,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: 'Overview',
-    href: '/overview',
+    href: '/',
     icon: <Home className="h-4 w-4" />,
   },
   {
