@@ -18,11 +18,37 @@ interface ApiKey {
   key: string;
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string;
+  provider: string;
+  max_usage: number;
+  usage: number;
+  created_at: string;
+}
+
 const ApiKeyManagement = () => {
   const { data: session } = useSession();
   const [apiKeys, setApiKeys] = React.useState<ApiKey[]>([]);
   const [loading, setLoading] = React.useState(true);
-  console.log("session", session)
+  const [userData, setUserData] = React.useState<UserData | null>(null);
+
+  // Fetch user data
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/me');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      const data = await response.json();
+      setUserData(data);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      toast.error('Failed to load user data');
+    }
+  };
 
   // Fetch API keys
   const fetchApiKeys = async () => {
@@ -52,9 +78,10 @@ const ApiKeyManagement = () => {
     }
   };
 
-  // Load API keys on mount and when session changes
+  // Load data on mount and when session changes
   React.useEffect(() => {
     if (session?.user?.supabaseUserId) {
+      fetchUserData();
       fetchApiKeys();
     }
   }, [session?.user?.supabaseUserId]);
@@ -207,10 +234,15 @@ const ApiKeyManagement = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Plan</span>
-                <span>0 / 1,000 Credits</span>
+                <span>{userData?.usage || 0} / {userData?.max_usage || 1000} Credits</span>
               </div>
               <div className="h-2 w-full bg-white/50 rounded-full">
-                <div className="h-full w-0 bg-white rounded-full" />
+                <div 
+                  className="h-full bg-white rounded-full transition-all duration-500" 
+                  style={{ 
+                    width: `${userData ? (userData.usage / userData.max_usage) * 100 : 0}%` 
+                  }} 
+                />
               </div>
             </div>
 
