@@ -1,7 +1,8 @@
 "use client"
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, Copy, Pencil, Trash, Plus } from 'lucide-react';
+import { Eye, Copy, Pencil, Trash, Plus, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 interface ApiKey {
   name: string;
@@ -35,7 +36,18 @@ const ApiKeyManagement = () => {
   return (
     <div className="w-full max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">API Keys</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-semibold">API Keys</h2>
+          <Button 
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
         <Button 
           onClick={handleAddKey}
           className="flex items-center gap-2"
