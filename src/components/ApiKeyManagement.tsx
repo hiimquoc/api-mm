@@ -1,10 +1,10 @@
 "use client"
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Pencil, Trash, Plus, LogOut } from 'lucide-react';
+import { Copy, Pencil, Trash, LogOut } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
-import { nanoid } from 'nanoid';
+import { AddApiKeyDialog } from './AddApiKeyDialog';
 
 interface ApiKey {
   id: string;
@@ -59,20 +59,7 @@ const ApiKeyManagement = () => {
     navigator.clipboard.writeText(key);
   };
 
-  const handleAddKey = async () => {
-    if (!session?.user?.supabaseUserId) {
-      console.log('No Supabase user ID found in session');
-      return;
-    }
-
-    const newKey = {
-      name: 'New Key',
-      type: 'dev',
-      key: `tvly-${nanoid(32)}`,
-      user_id: session.user.supabaseUserId,
-      usage: 0
-    };
-
+  const handleAddKey = async (newKey: { name: string; type: string; key: string; user_id: string; usage: number }) => {
     try {
       const { data, error } = await supabase
         .from('api_keys')
@@ -151,13 +138,12 @@ const ApiKeyManagement = () => {
             Sign Out
           </Button>
         </div>
-        <Button 
-          onClick={handleAddKey}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add
-        </Button>
+        {session?.user?.supabaseUserId && (
+          <AddApiKeyDialog 
+            onAddKey={handleAddKey} 
+            userId={session.user.supabaseUserId} 
+          />
+        )}
       </div>
 
       <p className="text-gray-600 mb-6">
