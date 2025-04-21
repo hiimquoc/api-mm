@@ -31,30 +31,23 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: 'Overview',
-    href: '/',
+    href: '/dashboard',
     icon: <Home className="h-4 w-4" />,
   },
   {
     label: 'API Playground',
-    href: '/playground',
+    href: '/dashboard/playground',
     icon: <Code2 className="h-4 w-4" />,
   },
   {
     label: 'Use Cases',
-    href: '/use-cases',
+    href: '/dashboard/use-cases',
     icon: <Sparkles className="h-4 w-4" />,
   },
   {
     label: 'My Account',
-    href: '/account',
+    href: '/dashboard/account',
     icon: <User className="h-4 w-4" />,
-    hasSubmenu: true,
-  },
-  {
-    label: 'Documentation',
-    href: '/docs',
-    icon: <FileText className="h-4 w-4" />,
-    isExternal: true,
   },
 ]
 
