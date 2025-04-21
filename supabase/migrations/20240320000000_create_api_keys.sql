@@ -1,13 +1,15 @@
 -- Create api_keys table
 CREATE TABLE IF NOT EXISTS api_keys (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   type TEXT NOT NULL,
   key TEXT NOT NULL,
   usage INTEGER DEFAULT 0,
+  max_usage INTEGER DEFAULT 1000,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  CONSTRAINT usage_within_limit CHECK (usage <= max_usage)
 );
 
 -- Create index for faster lookups
@@ -50,4 +52,31 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_api_keys_updated_at
   BEFORE UPDATE ON api_keys
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column(); 
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Create function to validate API key usage
+CREATE OR REPLACE FUNCTION validate_api_key_usage()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Check if this is a usage increment
+  IF NEW.usage > OLD.usage THEN
+    -- Check if incrementing usage would exceed max_usage
+    IF NEW.usage > NEW.max_usage THEN
+      RAISE EXCEPTION 'API key usage limit exceeded. Maximum allowed: %', NEW.max_usage;
+    END IF;
+  END IF;
+
+  -- Check if max_usage is being decreased below current usage
+  IF NEW.max_usage < OLD.max_usage AND NEW.max_usage < NEW.usage THEN
+    RAISE EXCEPTION 'Cannot decrease max_usage below current usage';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create trigger to validate API key usage before updates
+CREATE TRIGGER validate_api_key_usage_trigger
+  BEFORE UPDATE ON api_keys
+  FOR EACH ROW
+  EXECUTE FUNCTION validate_api_key_usage(); 

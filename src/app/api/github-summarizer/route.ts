@@ -59,10 +59,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate API key
+    // Validate API key and check usage
     const { data: apiKeyData, error: apiKeyError } = await supabase
       .from('api_keys')
-      .select('*')
+      .select('id, usage, max_usage')
       .eq('key', apiKey)
       .single()
 
@@ -70,6 +70,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Invalid API key' },
         { status: 401 }
+      )
+    }
+
+    // Check if usage limit is reached
+    if (apiKeyData.usage >= apiKeyData.max_usage) {
+      return NextResponse.json(
+        { error: 'API key usage limit exceeded' },
+        { status: 403 }
       )
     }
 
@@ -134,6 +142,18 @@ export async function POST(request: Request) {
 
     // Validate the output against our schema
     const validatedResult = summarySchema.parse(result)
+
+    // Increment the usage counter
+    const { error: updateError } = await supabase
+      .from('api_keys')
+      .update({ usage: apiKeyData.usage + 1 })
+      .eq('id', apiKeyData.id)
+
+    if (updateError) {
+      console.error('Error updating API key usage:', updateError)
+      // We still return the result even if usage update fails
+      // but log the error for monitoring
+    }
 
     return NextResponse.json(validatedResult)
   } catch (error) {
