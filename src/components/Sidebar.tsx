@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 interface NavItem {
   label: string
@@ -57,9 +58,28 @@ const navItems: NavItem[] = [
   },
 ]
 
+function UserAvatar({ name, image }: { name: string; image?: string | null }) {
+  const initials = name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  return (
+    <Avatar>
+      <AvatarImage src={image || ''} alt={name} />
+      <AvatarFallback>{initials}</AvatarFallback>
+    </Avatar>
+  )
+}
+
 function SidebarContent() {
   const pathname = usePathname()
   const selectedAccount = 'Personal'
+  const { data: session } = useSession()
+  const userName = session?.user?.name || 'User'
+  const userImage = session?.user?.image
 
   const handleSignOut = async () => {
     try {
@@ -96,9 +116,7 @@ function SidebarContent() {
           className="w-full justify-between bg-blue-50 hover:bg-blue-100 rounded-lg p-3"
         >
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-green-800 text-white flex items-center justify-center">
-              Q
-            </div>
+            <UserAvatar name={userName} image={userImage} />
             <span className="text-blue-600">{selectedAccount}</span>
           </div>
           <ChevronDown className="h-4 w-4 text-blue-600" />
@@ -132,11 +150,9 @@ function SidebarContent() {
       {/* User Profile */}
       <div className="pt-4 border-t">
         <div className="flex items-center gap-3 px-3">
-          <div className="w-8 h-8 rounded-lg bg-green-800 text-white flex items-center justify-center">
-            Q
-          </div>
+          <UserAvatar name={userName} image={userImage} />
           <div className="flex-1 flex items-center justify-between">
-            <div className="font-medium">Quoc Nguyen</div>
+            <div className="font-medium">{userName}</div>
             <Button 
               variant="ghost" 
               size="sm" 
