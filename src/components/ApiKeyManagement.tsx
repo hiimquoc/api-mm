@@ -1,10 +1,11 @@
 "use client"
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Pencil, Trash, LogOut } from 'lucide-react';
+import { Copy, Trash, LogOut } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import { AddApiKeyDialog } from './AddApiKeyDialog';
+import { UpdateApiKeyDialog } from './UpdateApiKeyDialog';
 
 interface ApiKey {
   id: string;
@@ -173,19 +174,15 @@ const ApiKeyManagement = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleUpdateKey(apiKey.id, { name: prompt('Enter new name:', apiKey.name) || apiKey.name })}
-                      aria-label="Edit API key"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
                       onClick={() => handleCopyKey(apiKey.key)}
                       aria-label="Copy API key"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
+                    <UpdateApiKeyDialog 
+                      apiKey={apiKey}
+                      onUpdateKey={handleUpdateKey}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
