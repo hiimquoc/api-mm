@@ -96,7 +96,7 @@ function SidebarContent() {
   }
 
   return (
-    <div className="flex flex-col h-full p-4 space-y-8">
+    <div className="flex flex-col h-full p-4 space-y-8 overflow-y-auto">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
         <div className="relative w-8 h-8">
@@ -170,12 +170,21 @@ function SidebarContent() {
 }
 
 export function Sidebar() {
+  const { status } = useSession()
+
+  if (status !== 'authenticated') {
+    return null
+  }
+
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col h-screen border-r">
+      <aside className="hidden md:block fixed top-0 left-0 w-64 h-screen border-r bg-background">
         <SidebarContent />
       </aside>
+
+      {/* Desktop Content Margin */}
+      <div className="hidden md:block w-64" />
 
       {/* Mobile Menu */}
       <div className="md:hidden fixed top-0 left-0 right-0 p-4 flex items-center justify-between bg-white border-b z-50">
