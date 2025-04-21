@@ -8,6 +8,7 @@ import { AddApiKeyDialog } from './AddApiKeyDialog';
 import { UpdateApiKeyDialog } from './UpdateApiKeyDialog';
 import { DeleteApiKeyDialog } from './DeleteApiKeyDialog';
 import { ApiKeyDisplay } from './ApiKeyDisplay';
+import { toast } from 'sonner';
 
 interface ApiKey {
   id: string;
@@ -60,6 +61,9 @@ const ApiKeyManagement = () => {
 
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
+    toast.success("API Key Copied", {
+      description: "The API key has been copied to your clipboard.",
+    });
   };
 
   const handleAddKey = async (newKey: { name: string; type: string; key: string; user_id: string; usage: number }) => {
@@ -71,11 +75,17 @@ const ApiKeyManagement = () => {
 
       if (error) {
         console.error('Error adding API key:', error);
+        toast.error("Error", {
+          description: "Failed to add API key. Please try again.",
+        });
         throw error;
       }
 
       if (data) {
         setApiKeys([...data, ...apiKeys]);
+        toast.success("API Key Added", {
+          description: "Your new API key has been added successfully.",
+        });
       }
     } catch (error) {
       console.error('Error in handleAddKey:', error);
@@ -89,8 +99,16 @@ const ApiKeyManagement = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        toast.error("Error", {
+          description: "Failed to delete API key. Please try again.",
+        });
+        throw error;
+      }
       setApiKeys(apiKeys.filter(key => key.id !== id));
+      toast.success("API Key Deleted", {
+        description: "The API key has been deleted successfully.",
+      });
     } catch (error) {
       console.error('Error deleting API key:', error);
     }
@@ -103,10 +121,32 @@ const ApiKeyManagement = () => {
         .update(updates)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        toast.error("Error", {
+          description: "Failed to update API key. Please try again.",
+        });
+        throw error;
+      }
       fetchApiKeys(); // Refresh the list
+      toast.success("API Key Updated", {
+        description: "The API key has been updated successfully.",
+      });
     } catch (error) {
       console.error('Error updating API key:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({ callbackUrl: '/login' });
+      toast.success("Signed Out", {
+        description: "You have been signed out successfully.",
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error("Error", {
+        description: "Failed to sign out. Please try again.",
+      });
     }
   };
 
@@ -132,7 +172,7 @@ const ApiKeyManagement = () => {
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-semibold">API Keys</h2>
           <Button 
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={handleSignOut}
             variant="ghost"
             size="sm"
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
