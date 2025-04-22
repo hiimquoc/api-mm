@@ -22,7 +22,7 @@ export default function LoginPage() {
         </div>
         <div className="mt-8">
           <Button
-            onClick={() => signIn("google", { callbackUrl: "http://localhost:3000" })}
+            onClick={() => signIn("google", { callbackUrl: process.env.NEXT_PUBLIC_NEXTAUTH_URL })}
             className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 hover:bg-gray-50 border border-gray-300"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
